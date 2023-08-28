@@ -1,5 +1,7 @@
 import dotenv from "dotenv";
 import fastify from "fastify";
+import fastifyCors from "@fastify/cors";
+import fastifyIO from "fastify-socket.io";
 
 dotenv.config();
 
@@ -16,12 +18,27 @@ if (!UPSTASH_REDIS_REST_URL) {
 async function buildServer() {
   const app = fastify();
 
+  // cors setup (the usual)
+  await app.register(fastifyCors, {
+    origin: CORS_ORIGIN,
+  });
+
+  await app.register(fastifyIO);
+
+  app.io.on('connection', (io) => {
+    console.log('user connected');
+
+    io.on('disconnect', () => {
+      console.log('user disconnected');
+    });
+  })
+
   app.get("/healthcheck", async () => {
     return {
-        status: "ok",
-        port: PORT,
-    }
-  })
+      status: "ok",
+      port: PORT,
+    };
+  });
 
   return app;
 }
@@ -31,8 +48,8 @@ async function main() {
 
   try {
     await app.listen({
-        port: PORT,
-        host: HOST,
+      port: PORT,
+      host: HOST,
     });
 
     console.log(`Server is running on http://${HOST}:${PORT}`);
