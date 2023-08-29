@@ -4,6 +4,7 @@ import fastifyCors from "@fastify/cors";
 import fastifyIO from "fastify-socket.io";
 import { Redis } from "ioredis";
 import closeWithGrace from "close-with-grace";
+import { randomUUID } from "crypto";
 
 dotenv.config();
 
@@ -14,6 +15,7 @@ const UPSTASH_REDIS_REST_URL = process.env.UPSTASH_REDIS_REST_URL;
 
 const CONNECTION_COUNT_KEY = "chat:connection-count";
 const CONNECTION_COUNT_UPDATED_CHANNEL = "chat:connection-count-updated"; // an actual channel
+const NEW_MESSAGE_CHANNEL = "chat:new-message";
 
 if (!UPSTASH_REDIS_REST_URL) {
   throw new Error("UPSTASH_REDIS_REST_URL is required");
@@ -53,6 +55,15 @@ async function buildServer() {
       String(incrResult)
     );
 
+    io.on(NEW_MESSAGE_CHANNEL, async (payload) => {
+      console.log("new message payload", payload);
+      const { message } = payload;
+
+      if (!message) return;
+
+      await publisher.publish(NEW_MESSAGE_CHANNEL, message.toString()); // message is actually a buffer, so we want to convert to string
+    });
+
     io.on("disconnect", async () => {
       console.log("user disconnected");
       const decrResult = await publisher.decr(CONNECTION_COUNT_KEY);
@@ -66,22 +77,47 @@ async function buildServer() {
 
   // subscriber setup
   subscriber.subscribe(CONNECTION_COUNT_UPDATED_CHANNEL, (err, count) => {
-    if (err)
+    if (err) {
       console.error(
         `Error subscribing: ${CONNECTION_COUNT_UPDATED_CHANNEL}`,
         err
       );
+      return;
+    }
 
     console.log(
       `${count} clients subscribed to channel ${CONNECTION_COUNT_UPDATED_CHANNEL}`
     );
   });
 
+  subscriber.subscribe(NEW_MESSAGE_CHANNEL, (err, count) => {
+    if (err) {
+      console.error(`Error subscribing: ${NEW_MESSAGE_CHANNEL}`, err);
+      return;
+    }
+
+    console.log(
+      `${count} clients subscribed to channel ${NEW_MESSAGE_CHANNEL}`
+    );
+  });
+
   // handles reception of all messages for all channels
   subscriber.on("message", (channel, text) => {
+    console.log(`Received message on channel ${channel}: ${text}`);
+
     if (channel === CONNECTION_COUNT_UPDATED_CHANNEL) {
       app.io.emit(CONNECTION_COUNT_UPDATED_CHANNEL, {
         count: parseInt(text, 10),
+      });
+      return;
+    }
+
+    if (channel === NEW_MESSAGE_CHANNEL) {
+      app.io.emit(NEW_MESSAGE_CHANNEL, {
+        message: text,
+        id: randomUUID(),
+        createdAt: new Date(),
+        port: PORT // helps us with knowing what instance of the server the user was connected to
       });
       return;
     }
@@ -118,7 +154,7 @@ async function main() {
           (await publisher.get(CONNECTION_COUNT_KEY)) || "0",
           10
         );
-        
+
         // make sure it doesn't go below 0
         const newCount = Math.max(currentCount - connectedClients, 0);
 
