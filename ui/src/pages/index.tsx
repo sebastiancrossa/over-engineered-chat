@@ -31,6 +31,8 @@ function useSocket() {
       socketIo.disconnect();
     };
   }, []);
+
+  return socket;
 }
 
 export default function Home() {
@@ -46,9 +48,9 @@ export default function Home() {
     socket?.on(NEW_MESSAGE_CHANNEL, (message: Message) => {
       setMessages((prevState) => [message, ...prevState]);
     });
-  }, []);
+  }, [socket]);
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
 
     socket?.emit(NEW_MESSAGE_CHANNEL, {
