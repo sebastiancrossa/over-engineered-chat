@@ -8,6 +8,13 @@ const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "ws://127.0.0.1";
 const CONNECTION_COUNT_UPDATED_CHANNEL = "chat:connection-count-updated"; // an actual channel
 const NEW_MESSAGE_CHANNEL = "chat:new-message";
 
+type Message = {
+  message: string;
+  id: string;
+  createdAt: string;
+  port: string;
+};
+
 function useSocket() {
   const [socket, setSocket] = useState<Socket | null>(null);
 
@@ -29,10 +36,15 @@ function useSocket() {
 export default function Home() {
   const socket = useSocket();
   const [newMessage, setNewMessage] = useState("");
+  const [messages, setMessages] = useState<Array<Message>>([]);
 
   useEffect(() => {
     socket?.on("connect", () => {
       console.log("connected to live socket!");
+    });
+
+    socket?.on(NEW_MESSAGE_CHANNEL, (message: Message) => {
+      setMessages((prevState) => [message, ...prevState]);
     });
   }, []);
 
@@ -48,6 +60,18 @@ export default function Home() {
 
   return (
     <main className="flex flex-col w-full p-4 max-w-3xl m-auto">
+      {messages.map((message) => (
+        <div
+          key={message.id}
+          className="flex flex-col items-start space-y-1 mb-4"
+        >
+          <span className="text-sm text-gray-400">
+            {new Date(message.createdAt).toLocaleString()}
+          </span>
+          <span className="text-lg">{message.message}</span>
+        </div>
+      ))}
+
       <form onSubmit={handleSubmit} className="flex items-center space-x-3">
         <Textarea
           placeholder="Type your message here..."
