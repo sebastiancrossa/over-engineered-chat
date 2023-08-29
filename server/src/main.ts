@@ -11,7 +11,8 @@ const HOST = process.env.HOST || "0.0.0.0";
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:3000";
 const UPSTASH_REDIS_REST_URL = process.env.UPSTASH_REDIS_REST_URL;
 
-const CONNECTION_COUNT_CHANNEL = "chat:connection-count";
+const CONNECTION_COUNT_KEY = "chat:connection-count";
+const CONNECTION_COUNT_UPDATED_CHANNEL = "chat:connection-count-updated"; // an actual channel
 
 if (!UPSTASH_REDIS_REST_URL) {
   throw new Error("UPSTASH_REDIS_REST_URL is required");
@@ -31,22 +32,37 @@ async function buildServer() {
 
   await app.register(fastifyIO);
 
-  const currentCount = await publisher.get(CONNECTION_COUNT_CHANNEL);
+  const currentCount = await publisher.get(CONNECTION_COUNT_KEY);
 
   if (!currentCount) {
-    await publisher.set(CONNECTION_COUNT_CHANNEL, 0);
+    await publisher.set(CONNECTION_COUNT_KEY, 0);
   }
 
   // real-time socket setup
   app.io.on("connection", async (io) => {
     console.log("user connected");
-    await publisher.incr(CONNECTION_COUNT_CHANNEL);
+
+    const incrResult = await publisher.incr(CONNECTION_COUNT_KEY); // returns the new count, we need to propagate it to all clients
+    await publisher.publish(
+      CONNECTION_COUNT_UPDATED_CHANNEL,
+      String(incrResult)
+    );
 
     io.on("disconnect", async () => {
       console.log("user disconnected");
-      await publisher.decr(CONNECTION_COUNT_CHANNEL);
+      const decrResult = await publisher.decr(CONNECTION_COUNT_KEY);
+      await publisher.publish(
+        CONNECTION_COUNT_UPDATED_CHANNEL,
+        String(decrResult)
+      );
     });
   });
+
+  subscriber.subscribe(CONNECTION_COUNT_UPDATED_CHANNEL, (err, count) => {
+    if (err) console.error(`Error subscribing: ${CONNECTION_COUNT_UPDATED_CHANNEL}`, err)
+
+    console.log(`${count} clients subscribed to channel ${CONNECTION_COUNT_UPDATED_CHANNEL}`)
+  })
 
   app.get("/healthcheck", async () => {
     return {
