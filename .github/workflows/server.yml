@@ -1,0 +1,33 @@
+name: Deploy server to droplet
+
+on:
+  push:
+    branches:
+      - main
+
+defaults:
+  run:
+    working-directory: ./server
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code checkout
+        uses: actions/checkout@vq
+
+      - name: Server deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.DROPLET_PRIVATE_KEY }}
+          script_stop: true # fail action on error
+          script: |
+            export UPSTASH_REDIS_REST_URL=${{ secrets.UPSTASH_REDIS_REST_URL }}
+            export CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
+            cd over-engineered-chat
+            cd server
+            git pull
+            docker-compose down
+            docker-compse --project-name over-engineered-chat up -d --build
