@@ -30,4 +30,4 @@ jobs:
             cd server
             git pull
             docker-compose down
-            docker-compse --project-name over-engineered-chat up -d --build
+            docker-compose --project-name over-engineered-chat up -d --build
