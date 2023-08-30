@@ -1,4 +1,4 @@
-http://127.0.0.1 {
+147.182.195.185 {
     reverse_proxy chat-app-1:3001 chat-app-2:4000 chat-app-3:5050 {
         header_down Strict-Transport-Security max-age=31536000
     }
