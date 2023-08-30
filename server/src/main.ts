@@ -117,7 +117,7 @@ async function buildServer() {
         message: text,
         id: randomUUID(),
         createdAt: new Date(),
-        port: PORT // helps us with knowing what instance of the server the user was connected to
+        port: PORT, // helps us with knowing what instance of the server the user was connected to
       });
       return;
     }
