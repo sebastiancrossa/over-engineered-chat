@@ -109,6 +109,7 @@ export default function Home() {
             key={message.id}
             className="flex flex-col items-start space-y-1 mb-4 bg-gray-100 p-4 rounded-lg break-all"
           >
+            <span className="text-sm text-gray-400">from: {message.id}</span>
             <div className="flex items-center space-x-1">
               <span className="text-sm text-gray-400">
                 {new Date(message.createdAt).toLocaleString()}
