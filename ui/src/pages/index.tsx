@@ -62,17 +62,35 @@ export default function Home() {
 
   return (
     <main className="flex flex-col w-full p-4 max-w-3xl m-auto">
-      {messages.map((message) => (
-        <div
-          key={message.id}
-          className="flex flex-col items-start space-y-1 mb-4"
-        >
-          <span className="text-sm text-gray-400">
-            {new Date(message.createdAt).toLocaleString()}
-          </span>
-          <span className="text-lg">{message.message}</span>
-        </div>
-      ))}
+      <div className="flex justify-between items-center border-b mb-5">
+        <h1 className="text-4xl font-bold mb-4">overly engineered chat</h1>
+
+        {socket?.active ? (
+          <div className="flex items-center space-x-2">
+            <div className="rounded-full w-2 h-2 bg-green-500" />
+            <p>Connected</p>
+          </div>
+        ) : (
+          <div className="flex items-center space-x-2">
+            <div className="rounded-full w-2 h-2 bg-red-500" />
+            <p>Disconnected</p>
+          </div>
+        )}
+      </div>
+
+      <div className="flex-1 overflow-y-scroll overflow-x-hidden space-y-2">
+        {messages.map((message) => (
+          <div
+            key={message.id}
+            className="flex flex-col items-start space-y-1 mb-4 bg-gray-100 p-4 rounded-lg break-all"
+          >
+            <span className="text-sm text-gray-400">
+              {new Date(message.createdAt).toLocaleString()}
+            </span>
+            <span className="text-lg">{message.message}</span>
+          </div>
+        ))}
+      </div>
 
       <form onSubmit={handleSubmit} className="flex items-center space-x-3">
         <Textarea
