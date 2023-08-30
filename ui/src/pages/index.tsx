@@ -39,6 +39,7 @@ export default function Home() {
   const socket = useSocket();
   const messagesRef = useRef<HTMLDivElement | null>(null);
 
+  const [userCount, setUserCount] = useState(0);
   const [newMessage, setNewMessage] = useState("");
   const [messages, setMessages] = useState<Array<Message>>([]);
 
@@ -55,6 +56,13 @@ export default function Home() {
         scrollToBottom();
       }, 0);
     });
+
+    socket?.on(
+      CONNECTION_COUNT_UPDATED_CHANNEL,
+      ({ count }: { count: number }) => {
+        setUserCount(count);
+      }
+    );
   }, [socket]);
 
   const handleSubmit = (e: FormEvent) => {
@@ -82,7 +90,7 @@ export default function Home() {
         {socket?.active ? (
           <div className="flex items-center space-x-2">
             <div className="rounded-full w-2 h-2 bg-green-500" />
-            <p>Connected</p>
+            <p>Connected ({userCount})</p>
           </div>
         ) : (
           <div className="flex items-center space-x-2">
