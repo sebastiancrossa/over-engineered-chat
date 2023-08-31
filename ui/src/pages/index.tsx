@@ -1,8 +1,11 @@
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import io, { Socket } from "socket.io-client";
+import Avvvatars from "avvvatars-react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+import { cn } from "@/lib/utils";
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "ws://127.0.0.1";
 // const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "ws://0.0.0.0:3001";
@@ -112,33 +115,46 @@ export default function Home() {
           <div
             key={message.id}
             className={cn(
-              "flex flex-col items-start space-y-1 mb-4 p-4 rounded-lg break-all",
-              message.connectionId === socket?.id
-                ? "bg-none border-2 border-gray-100 text-right items-end"
-                : "bg-gray-100"
+              "flex flex-row items-center space-x-4 space-y-1 mb-4 rounded-lg break-all",
+              message.connectionId === socket?.id &&
+                "flex-row-reverse text-right space-x-reverse"
             )}
           >
-            <div className="flex items-center space-x-1">
-              <span className="text-sm text-gray-400">
-                {new Date(message.createdAt).toLocaleString()}
-              </span>
-              <span className="text-sm text-gray-400">(:{message.port})</span>
+            <Avvvatars value={message.connectionId} style="shape" size={40} />
+
+            <div className={cn(message.connectionId === socket?.id && "mr-4")}>
+              <div className="flex items-center space-x-1">
+                <span className="text-sm text-gray-400">
+                  {new Date(message.createdAt).toLocaleString()}
+                </span>
+                <span className="text-sm text-gray-400">(:{message.port})</span>
+              </div>
+              <span className="text-lg">{message.message}</span>
             </div>
-            <span className="text-lg">{message.message}</span>
           </div>
         ))}
       </div>
 
       <form onSubmit={handleSubmit} className="flex items-center space-x-3">
-        <Textarea
+        <Input
           placeholder="Type your message here..."
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
-          maxLength={255}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              handleSubmit(e);
+            }
+          }}
           className="resize-none rounded-lg"
         />
 
-        <Button className="h-full">Send</Button>
+        <Button
+          className="h-fit transition-all"
+          disabled={newMessage.length <= 0}
+        >
+          Send
+        </Button>
       </form>
     </main>
   );
