@@ -1,9 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import io, { Socket } from "socket.io-client";
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "ws://127.0.0.1";
+// const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "ws://0.0.0.0:3001";
 
 const CONNECTION_COUNT_UPDATED_CHANNEL = "chat:connection-count-updated"; // an actual channel
 const NEW_MESSAGE_CHANNEL = "chat:new-message";
@@ -13,6 +15,7 @@ type Message = {
   id: string;
   createdAt: string;
   port: string;
+  connectionId: string;
 };
 
 function useSocket() {
@@ -70,6 +73,7 @@ export default function Home() {
 
     socket?.emit(NEW_MESSAGE_CHANNEL, {
       message: newMessage,
+      connectionId: socket.id,
     });
 
     setNewMessage("");
@@ -107,9 +111,13 @@ export default function Home() {
         {messages.map((message) => (
           <div
             key={message.id}
-            className="flex flex-col items-start space-y-1 mb-4 bg-gray-100 p-4 rounded-lg break-all"
+            className={cn(
+              "flex flex-col items-start space-y-1 mb-4 p-4 rounded-lg break-all",
+              message.connectionId === socket?.id
+                ? "bg-none border-2 border-gray-100 text-right items-end"
+                : "bg-gray-100"
+            )}
           >
-            <span className="text-sm text-gray-400">id: {message.id}</span>
             <div className="flex items-center space-x-1">
               <span className="text-sm text-gray-400">
                 {new Date(message.createdAt).toLocaleString()}

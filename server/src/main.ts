@@ -57,11 +57,14 @@ async function buildServer() {
 
     io.on(NEW_MESSAGE_CHANNEL, async (payload) => {
       console.log("new message payload", payload);
-      const { message } = payload;
+      const { message, connectionId } = payload;
 
       if (!message) return;
 
-      await publisher.publish(NEW_MESSAGE_CHANNEL, message.toString()); // message is actually a buffer, so we want to convert to string
+      await publisher.publish(NEW_MESSAGE_CHANNEL, JSON.stringify({
+        message,
+        connectionId
+      })); // message is actually a buffer, so we want to convert to string
     });
 
     io.on("disconnect", async () => {
@@ -102,7 +105,7 @@ async function buildServer() {
   });
 
   // handles reception of all messages for all channels
-  subscriber.on("message", (channel, text) => {
+  subscriber.on("message", (channel, text)  => {
     console.log(`Received message on channel ${channel}: ${text}`);
 
     if (channel === CONNECTION_COUNT_UPDATED_CHANNEL) {
@@ -113,11 +116,15 @@ async function buildServer() {
     }
 
     if (channel === NEW_MESSAGE_CHANNEL) {
+      const { message, connectionId } = JSON.parse(text);
+
       app.io.emit(NEW_MESSAGE_CHANNEL, {
-        message: text,
         id: randomUUID(),
+        message,
+        connectionId,
         createdAt: new Date(),
         port: PORT, // helps us with knowing what instance of the server the user was connected to
+
       });
       return;
     }
